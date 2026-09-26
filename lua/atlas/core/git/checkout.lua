@@ -17,12 +17,16 @@ local function star_count(s)
 	return n
 end
 
--- Split "group/subgroup/repo" -> namespace, repo.
+-- Split "group/subgroup/repo" -> namespace, repo and "repo" -> "", repo. Returns nil for empty segments.
 local function split_key(key)
-	if key:sub(1, 1) == "/" or key:find("//", 1, true) then
-		return nil
+	if key == "" or key:sub(1, 1) == "/" or key:sub(-1) == "/" or key:find("//", 1, true) then
+		return nil, nil
 	end
-	return key:match("^(.+)/([^/]+)$")
+	local namespace, repo = key:match("^(.+)/([^/]+)$")
+	if namespace then
+		return namespace, repo
+	end
+	return "", key
 end
 
 local function normalize_path(path)
@@ -75,7 +79,7 @@ function M.validate_repo_paths(repo_paths)
 		end
 		local _, seg = split_key(key)
 		if seg == nil then
-			return false, string.format("invalid key '%s' (expected namespace/repo or namespace/<pattern with *>)", key)
+			return false, string.format("invalid key '%s' (expected a repository path such as namespace/repo)", key)
 		end
 		if star_count(seg) ~= star_count(value) then
 			return false, string.format("wildcard parity mismatch for '%s' → '%s'", key, value)
@@ -98,7 +102,7 @@ function M.resolve_repo_path(repo_paths, repo_name, opts)
 
 	local namespace, repo = split_key(repo_name)
 	if not namespace then
-		return nil, "invalid repository identifier (expected namespace/repo)"
+		return nil, "invalid repository identifier (expected a repository path such as namespace/repo)"
 	end
 
 	-- Exact match wins over any wildcard.

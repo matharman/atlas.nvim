@@ -78,6 +78,7 @@ local function default_groups()
 		AtlasGitHubTheme = { bg = "#1f2328", fg = "#f0f6fc", bold = true },
 		AtlasGitLabTheme = { fg = "#1e1e2e", bg = "#fc6d26", bold = true },
 		AtlasBitbucketTheme = { bg = "#1e3a8a", bold = true },
+		AtlasGerritTheme = { fg = "#ffffff", bg = "#2a66d9", bold = true },
 		AtlasJiraTheme = chip_defaults("#1e3a8a"),
 
 		-- Chips

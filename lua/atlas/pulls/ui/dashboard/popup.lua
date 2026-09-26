@@ -112,7 +112,34 @@ local function bitbucket_rows(pr)
 	return rows
 end
 
+local function gerrit_rows(pr)
+	---@cast pr GerritPullRequest
+	local rows = {}
+	local kinds = {
+		approved = "successful",
+		recommended = "successful",
+		rejected = "failed",
+		disliked = "failed",
+		neutral = "inprogress",
+	}
+	for _, label in ipairs({ { "Code-Review", "Review" }, { "Verified", "Verified" } }) do
+		local summary = (pr.labels or {})[label[1]]
+		if summary then
+			local vote = summary.min < 0 and summary.min or summary.max
+			local value, hl_group = status_value(kinds[summary.status] or "inprogress", string.format("%+d", vote))
+			add(rows, label[2], value, hl_group)
+		end
+	end
+	add(rows, "Patch set", pr.patch_set and tostring(pr.patch_set) or nil)
+	local unresolved = pr.unresolved_comments_count or 0
+	if unresolved > 0 then
+		add(rows, "Threads", string.format("%d unresolved", unresolved), "AtlasLogError")
+	end
+	return rows
+end
+
 local provider_rows = {
+	gerrit = gerrit_rows,
 	github = github_rows,
 	gitlab = gitlab_rows,
 	bitbucket = bitbucket_rows,

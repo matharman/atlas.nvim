@@ -242,4 +242,14 @@ function M.curl_text_request(method, url, headers, data, callback)
 	end, true)
 end
 
+---@param method string
+---@param url string
+---@param headers table<string, string>
+---@param data? string
+---@param callback fun(body?: string, status?: integer|nil, err?: string)
+---@return { job_id: integer, cancel: fun() }
+function M.curl_raw_request(method, url, headers, data, callback)
+	return curl_fetch(method, url, headers, data, callback, method == "GET")
+end
+
 return M

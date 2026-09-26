@@ -15,6 +15,12 @@ local function no_repository()
 	notify.error("No supported Git repository found", { vim_notify = true })
 end
 
+---@param value string
+---@return boolean
+local function is_change_id(value)
+	return #value == 41 and value:match("^I%x+$") ~= nil
+end
+
 ---@param pr PullRequest
 ---@param details PullRequestDetails|nil
 ---@return AtlasPickerPreview
@@ -120,7 +126,7 @@ local function open_repository(repository, branch)
 	end)
 end
 
----@param target string|nil A pull request URL, a number in the current repository, "." for the current branch's pull request, or nil to pick one.
+---@param target string|nil A pull request URL, a number in the current repository (or on the configured Gerrit host outside one), a Gerrit Change-Id, "." for the current branch's pull request, or nil to pick one.
 function M.open(target)
 	requests.cancel()
 	requests = request_scope.new()
@@ -148,23 +154,55 @@ function M.open(target)
 		return
 	end
 
-	local function open_reference(repository)
-		local pr, err = providers.resolve(target, { repository = repository, domain = "pulls" })
-		if not pr or pr.domain ~= "pulls" or pr.entity ~= "pr" then
-			notify.error(err or "Expected a pull request URL or number", { vim_notify = true })
-			return
-		end
-		diff.open_pr(pr, function(open_err)
+	---@param ref AtlasTarget
+	local function open_target(ref)
+		diff.open_pr(ref, function(open_err)
 			if open_err then
 				notify.error(open_err, { vim_notify = true })
 			end
 		end)
 	end
 
-	if target:match("^[#!]?%d+$") then
+	local function open_reference(repository)
+		local pr, err = providers.resolve(target, { repository = repository, domain = "pulls" })
+		if not pr or pr.domain ~= "pulls" or pr.entity ~= "pr" then
+			notify.error(err or "Expected a pull request URL or number", { vim_notify = true })
+			return
+		end
+		open_target(pr)
+	end
+
+	local change_id = is_change_id(target)
+	if change_id or target:match("^[#!]?%d+$") then
 		requests.run(function(done)
 			return git.local_repository(nil, done)
-		end, open_reference)
+		end, function(repository)
+			local local_provider = repository
+					and config.provider_options(repository.provider)
+					and repository.provider
+				or nil
+			if local_provider == nil and config.provider_options("gerrit") and (change_id or target:match("^#?%d+$")) then
+				local number = tonumber((target:gsub("^#", "")))
+				open_target({
+					provider = "gerrit",
+					domain = "pulls",
+					entity = "pr",
+					id = number or target,
+					number = number,
+				})
+				return
+			end
+			if not change_id then
+				open_reference(repository)
+				return
+			end
+			if local_provider ~= "gerrit" then
+				notify.error("Change-Ids are only supported for Gerrit", { vim_notify = true })
+				return
+			end
+			---@cast repository AtlasTarget
+			open_target(vim.tbl_extend("force", {}, repository, { domain = "pulls", entity = "pr", id = target }))
+		end)
 	else
 		open_reference(nil)
 	end

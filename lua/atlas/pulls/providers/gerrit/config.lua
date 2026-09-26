@@ -1,0 +1,34 @@
+-- Example:
+--   require("atlas").setup({
+--     providers = {
+--       ---@type AtlasGerritConfig
+--       gerrit = {
+--         base_url      = "https://gerrit.example.com",
+--         user          = "jdoe",
+--         http_password = vim.env.GERRIT_HTTP_PASSWORD,
+--       },
+--     },
+--     pulls = {
+--       ---@type AtlasGerritPullsConfig
+--       gerrit = {
+--         views = {
+--           { name = "Mine",      key = "1", search = "owner:self" },
+--           { name = "Reviewing", key = "2", search = "reviewer:self -owner:self" },
+--           { name = "Repo",      key = "3", current_repo = true },
+--         },
+--       },
+--     },
+--   })
+--
+-- `search` uses Gerrit query syntax. `status:` terms become the dashboard state filters.
+
+---@class AtlasGerritPullsViewConfig : AtlasPullsViewConfig
+
+---@class AtlasGerritPullsBookmarksConfig
+---@field key string|nil
+---@field label string|nil
+---@field items table<string, string|AtlasPullsBookmarkConfig>|nil
+
+---@class AtlasGerritPullsConfig
+---@field views AtlasGerritPullsViewConfig[]|nil
+---@field bookmarks AtlasGerritPullsBookmarksConfig|nil

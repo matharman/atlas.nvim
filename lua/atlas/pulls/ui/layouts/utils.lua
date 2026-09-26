@@ -79,6 +79,26 @@ function M.status_icon(status)
 	return icons.get("inprogress", "status"), "AtlasTextMuted"
 end
 
+local GERRIT_LABELS = {
+	approved = { "successful" },
+	recommended = { "successful", "AtlasTextMuted" },
+	rejected = { "failed" },
+	disliked = { "failed", "AtlasTextMuted" },
+	neutral = { "inprogress", "AtlasTextMuted" },
+}
+
+---@param summary GerritLabelSummary|nil
+---@return string, string
+function M.gerrit_label(summary)
+	if summary == nil then
+		return "", "AtlasTextMuted"
+	end
+
+	local style = GERRIT_LABELS[summary.status] or GERRIT_LABELS.neutral
+	local icon, hl_group = icons.get(style[1], "status")
+	return icon, style[2] or hl_group
+end
+
 local function cell_highlights(row, column, context, opts)
 	local pr = row.kind == "pr" and row._item.pr or nil
 	if column.key == "repo_pr" and context.text:find(STAR_ICON, 1, true) == 1 then

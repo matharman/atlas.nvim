@@ -159,6 +159,51 @@ M.bitbucket = {
 	end,
 }
 
+M.gerrit = {
+	reference = "#",
+	columns = {
+		{ key = "name", name = "Title", min_width = 42 },
+		{ key = "conversation", name = icons.get("conversation"), min_width = 2, can_grow = false },
+		{ key = "review", name = icons.get("success"), min_width = 1, can_grow = false },
+		{ key = "verified", name = icons.get("tasks"), min_width = 1, can_grow = false },
+		{ key = "author", name = icons.get("user") .. " Author", min_width = 10, can_grow = false },
+		{ key = "diff", name = icons.get("changes"), min_width = 5, max_width = 15, can_grow = false },
+		{ key = "created", name = icons.get("created"), min_width = 4, can_grow = false },
+		{ key = "updated", name = icons.get("updated"), min_width = 4, can_grow = false },
+	},
+	values = function(pr, opts)
+		---@cast pr GerritPullRequest
+		local icon = utils.pull_icon(pr, opts)
+		local labels = pr.labels or {}
+		local review, review_hl = utils.gerrit_label(labels["Code-Review"])
+		local verified, verified_hl = utils.gerrit_label(labels["Verified"])
+		local diff, diff_hl = utils.diff_stats(pr.lines_added or 0, pr.lines_removed or 0)
+
+		return {
+			name = icon .. " " .. utils.title(pr, "#"),
+			conversation = tostring(pr.comments_count),
+			review = review,
+			review_hl = review_hl,
+			verified = verified,
+			verified_hl = verified_hl,
+			author = utils.author(pr),
+			diff = diff,
+			diff_hl = diff_hl,
+			created = ui_utils.relative_time(pr.created_on),
+			updated = ui_utils.relative_time(pr.updated_on),
+		}
+	end,
+	highlights = function(row, column)
+		if column.key == "review" then
+			return row.review_hl
+		elseif column.key == "verified" then
+			return row.verified_hl
+		elseif column.key == "diff" then
+			return row.diff_hl
+		end
+	end,
+}
+
 M.default = {
 	reference = "#",
 	columns = {

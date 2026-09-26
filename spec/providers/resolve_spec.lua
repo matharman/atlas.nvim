@@ -11,6 +11,7 @@ describe("providers.resolve", function()
 				github = { hostname = "github.com" },
 				gitlab = { base_url = "https://gitlab.example.com", token = "token" },
 				bitbucket = { user = "user", token = "token" },
+				gerrit = { base_url = "https://gerrit.example.com", user = "jdoe" },
 				jira = { base_url = "https://jira.example.com", token = "token" },
 			},
 			pulls = {
@@ -286,6 +287,16 @@ describe("providers.resolve", function()
 			local target, err = providers.resolve("https://jira.other.example.com/browse/ATLAS-123")
 			assert.is_nil(target)
 			assert.are.equal("Unsupported Atlas URL", err)
+		end)
+	end)
+
+	describe("Gerrit", function()
+		it("resolves a change", function()
+			local target = assert(providers.resolve("https://gerrit.example.com/c/team/repo/+/9"))
+			assert.are.equal("gerrit", target.provider)
+			assert.are.equal("pr", target.entity)
+			assert.are.equal(9, target.id)
+			assert.are.equal("team/repo", target.repo_full_name)
 		end)
 	end)
 end)

@@ -1,0 +1,10 @@
+---@class AtlasGerritConfig
+---@field base_url string Web and REST base URL, e.g. "https://gerrit.example.com" or "https://example.com/gerrit".
+---@field user string Gerrit username.
+---@field http_password string|nil HTTP password from Settings -> HTTP Credentials.
+---@field token_cmd string|string[]|nil Command whose stdout is the HTTP password; used when http_password is unset.
+---@field ssh_host string|nil SSH host when it differs from the base_url host.
+---@field ssh_port integer|nil SSH port (default: 29418).
+---@field approve_vote integer|nil Code-Review vote for Approve (default: 1).
+---@field request_changes_vote integer|nil Code-Review vote for Request changes (default: -1).
+---@field cache_ttl number|nil Cache lifetime in seconds. Set to 0 to disable caching.

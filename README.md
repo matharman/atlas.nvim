@@ -5,7 +5,7 @@
 
 # Atlas.nvim
 
-Review pull requests and manage issues across GitHub, GitLab, Bitbucket and Jira without leaving your editor.
+Review pull requests and manage issues across GitHub, GitLab, Bitbucket, Gerrit and Jira without leaving your editor.
 
 <p>
   <img alt="GitHub" src="https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white">
@@ -72,6 +72,7 @@ require("atlas").setup({})
 - Bitbucket: Bitbucket Cloud REST API 2.0 (`api.bitbucket.org`)
 - GitHub: GitHub CLI (`gh`) authenticated with `gh auth login`
 - GitLab: GitLab 17.7+ (`gitlab.com` or self-hosted), Personal Access Token with `api` scope
+- Gerrit: Gerrit 3.3+ REST API with an HTTP password (Settings -> HTTP Credentials)
 
 </details>
 
@@ -330,6 +331,18 @@ Save searches as bookmarks, or press `*` to star a pull request or issue. Both a
       cache_ttl = 300, -- Set to 0 to disable caching.
     },
 
+    ---@type AtlasGerritConfig
+    gerrit = {
+      base_url = "https://gerrit.example.com",
+      user = "your-username",
+      -- Settings -> HTTP Credentials. Alternatively set `token_cmd` to a command that prints it.
+      http_password = vim.env.GERRIT_HTTP_PASSWORD,
+      ssh_port = 29418, -- Used for `git_transport = "ssh"`.
+      approve_vote = 1, -- Code-Review vote for Approve, capped by your permitted range.
+      request_changes_vote = -1, -- Code-Review vote for Request changes.
+      cache_ttl = 300, -- Set to 0 to disable caching.
+    },
+
     ---@type AtlasJiraConfig
     jira = {
       base_url = "https://your-site.atlassian.net",
@@ -355,7 +368,7 @@ Save searches as bookmarks, or press `*` to star a pull request or issue. Both a
 - `:Atlas` - Pick a command
 - `:Atlas pulls [provider|.]` - Open a pull-request provider dashboard; `.` uses the current repository's provider
 - `:Atlas issues [provider|.]` - Open an issue provider dashboard; `.` uses the current repository's provider
-- `:Atlas review [pull-request-url|number|.]` - Review a pull request with the configured diff viewer; without an argument, pick one from the current repository; `.` reviews the current branch's pull request
+- `:Atlas review [pull-request-url|number|Change-Id|.]` - Review a pull request with the configured diff viewer; without an argument, pick one from the current repository; a number or Gerrit Change-Id uses the current repository's provider, falling back to Gerrit outside a supported repository; `.` reviews the current branch's pull request
 - `:Atlas diff <base...head>` - Open a Git range with the configured diff viewer
 - `:Atlas pipelines [target|.]` - Open pipelines by branch name, PR URL or number, or build URL; `.` uses the current branch
 - `:Atlas create pr` - Create a pull request from the current branch
@@ -370,7 +383,7 @@ Save searches as bookmarks, or press `*` to star a pull request or issue. Both a
 
 ## Pulls
 
-Use `:Atlas pulls [provider|.]` to browse and manage pull requests from GitHub, Bitbucket, and GitLab.
+Use `:Atlas pulls [provider|.]` to browse and manage pull requests from GitHub, Bitbucket, GitLab, and Gerrit.
 Shared authentication and endpoints are configured in the top-level `providers` table.
 
 ### Pulls Configuration
@@ -607,6 +620,39 @@ pulls = {
 ```
 
 <img alt="gitlab" src="https://github.com/user-attachments/assets/7b5b840d-c67f-489f-9756-e84b0091c823" />
+
+</details>
+
+<a id="gerrit"></a>
+
+<details>
+<summary><strong>Gerrit</strong></summary>
+
+Changes are shown as pull requests. `search` uses [Gerrit query syntax](https://gerrit-review.googlesource.com/Documentation/user-search.html); `status:` terms become the dashboard state filters.
+
+```lua
+pulls = {
+  ---@type AtlasGerritPullsConfig
+  gerrit = {
+    views = {
+      { name = "Mine", key = "1", search = "owner:self status:open" },
+      { name = "Review requested", key = "2", search = "reviewer:self -owner:self status:open" },
+      -- Prefixes `project:<origin project>` to the search.
+      { name = "Current repo", key = "3", layout = "compact", current_repo = true },
+    },
+  },
+},
+```
+
+Typing `@` in a comment completes `@<email>` mentions of the owner, reviewers, CCs and commenters (Gerrit 3.7+ notifies them). The relation chain shows under related items (`gl`) as `parent` and `child` changes.
+
+Resolving or reopening a thread adds a draft reply ("Done" or "Reopened") that is published with your review. If the thread already has a draft reply of yours, Atlas updates it instead. Toggling back before submitting deletes a draft whose whole text is "Done" or "Reopened", including one you typed yourself; any other draft reply is kept and only its resolved flag changes.
+
+Limitations:
+- The diff compares the current patch set against its parent; comparing two patch sets is not supported.
+- Published comments cannot be edited or deleted; only drafts can.
+- Changes are created with `git push origin HEAD:refs/for/<branch>`, not from Atlas.
+- Gerrit changes have no source branch, so `:Atlas review .` lists every open change of the repository instead of the current branch's.
 
 </details>
 

@@ -625,7 +625,7 @@ M.toggle_resolved = {
 			context.on_submit()
 		end
 		notify(context, "loading", resolved and "Resolving thread..." or "Reopening thread...")
-		set_resolved(context.pr, comment, resolved, function(ok, err)
+		set_resolved(context.pr, comment, resolved, function(ok, err, draft)
 			if err or not ok then
 				local message = tostring(err or "Unable to update thread")
 				notify(context, "error", message)
@@ -633,8 +633,21 @@ M.toggle_resolved = {
 				return
 			end
 			local message = resolved and "Thread resolved" or "Thread reopened"
+			if draft and not draft.removed then
+				message = message .. " in pending review"
+			end
 			notify(context, "success", message, 1200)
 			comment.state = resolved and "RESOLVED" or (comment.outdated and "OUTDATED" or nil)
+			if draft and context.items then
+				if draft.removed then
+					remove_comment(context, draft.comment)
+				else
+					upsert_comment(context, draft.comment)
+				end
+				if context.data then
+					context.data.review.pending = not draft.removed or has_other_pending_items(context.data, draft.comment)
+				end
+			end
 			on_done({ changed_pr = false, message = message }, nil)
 		end)
 		return true

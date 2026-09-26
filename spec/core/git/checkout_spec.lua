@@ -30,14 +30,18 @@ describe("core.git.checkout", function()
 			assert.is_false(ok)
 		end)
 
-		it("rejects missing or empty namespace and repository segments", function()
-			for _, key in ipairs({ "bad", "/group/repo", "group//repo", "group/subgroup/", "group/subgroup//repo" }) do
+		it("rejects empty namespace and repository segments", function()
+			for _, key in ipairs({ "", "/group/repo", "group//repo", "group/subgroup/", "group/subgroup//repo" }) do
 				local ok = checkout.validate_repo_paths({ [key] = "~/x" })
 				assert.is_false(ok)
 				local path, err = resolve({}, key)
 				assert.is_nil(path)
 				assert.matches("invalid repository identifier", assert(err), 1, true)
 			end
+		end)
+
+		it("accepts single-segment and nested keys", function()
+			assert.is_true(checkout.validate_repo_paths({ ["repo"] = "~/x", ["a/b/*"] = "~/y/*" }))
 		end)
 	end)
 
@@ -69,6 +73,12 @@ describe("core.git.checkout", function()
 				local path = resolve({ [namespace .. "/proj-*-v*"] = "~/code/*/v*" }, namespace .. "/proj-foo-v2")
 				assert.matches("/code/foo/v2$", assert(path))
 			end
+		end)
+
+		it("resolves single-segment repositories", function()
+			local paths = { ["tools"] = "~/code/tools", ["group/*"] = "~/code/*" }
+			assert.matches("/code/tools$", assert(resolve(paths, "tools")))
+			assert.is_nil(resolve(paths, "other"))
 		end)
 
 		it("does not match across namespaces", function()

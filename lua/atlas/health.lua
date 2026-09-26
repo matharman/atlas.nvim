@@ -155,6 +155,51 @@ local function check_gitlab()
 	check_provider_views("gitlab")
 end
 
+local function check_gerrit()
+	local provider = config.provider_options("gerrit")
+	if provider == nil then
+		vim.health.info("Gerrit not configured")
+		return
+	end
+
+	check_https_url(provider.base_url, "providers.gerrit.base_url")
+	check_provider_views("gerrit")
+
+	local client = require("atlas.providers.gerrit.client")
+	local user, password, auth_err = client.get_auth()
+	if auth_err then
+		vim.health.warn(auth_err)
+		return
+	end
+	vim.health.ok("Gerrit credentials configured")
+
+	local result = vim.system({
+		"curl",
+		"-sS",
+		"--max-time",
+		"10",
+		"-o",
+		"/dev/null",
+		"-w",
+		"%{http_code}",
+		"-u",
+		string.format("%s:%s", user, password),
+		client.base_url() .. "/a/accounts/self",
+	}, { text = true }):wait()
+	local status = vim.trim(result.stdout or "")
+	if result.code ~= 0 then
+		vim.health.error("Gerrit request failed: " .. vim.trim(result.stderr or ""))
+	elseif status == "200" then
+		vim.health.ok("Gerrit authenticated")
+	elseif status == "401" or status == "403" then
+		vim.health.error("Gerrit rejected the credentials (HTTP " .. status .. ")", {
+			"Use the HTTP password from Settings -> HTTP Credentials, not the account password",
+		})
+	else
+		vim.health.error("Gerrit returned HTTP " .. status .. " for /a/accounts/self")
+	end
+end
+
 local function check_jira()
 	local provider = config.provider_options("jira")
 	if provider == nil then
@@ -339,6 +384,9 @@ function M.check()
 
 	vim.health.start("GitLab")
 	check_gitlab()
+
+	vim.health.start("Gerrit")
+	check_gerrit()
 
 	vim.health.start("Jira")
 	check_jira()

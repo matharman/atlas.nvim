@@ -77,7 +77,7 @@ local function normalize_target(value)
 	if provider == "" or host == "" or repository == "" or id == "" then
 		return nil, "Invalid pull request target"
 	end
-	if provider ~= "gitlab" then
+	if provider ~= "gitlab" and provider ~= "gerrit" then
 		repository = repository:lower()
 	end
 	local url = text(value.url)

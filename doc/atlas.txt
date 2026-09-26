@@ -19,6 +19,7 @@ CONTENTS                                                       *atlas-contents*
      GitHub ................................. |atlas-pulls-github|
      Bitbucket .............................. |atlas-pulls-bitbucket|
      GitLab ................................. |atlas-pulls-gitlab|
+     Gerrit ................................. |atlas-pulls-gerrit|
   6. Issues ................................. |atlas-issues|
      Jira ................................... |atlas-issues-jira|
      GitHub ................................. |atlas-issues-github|
@@ -29,8 +30,8 @@ CONTENTS                                                       *atlas-contents*
 ==============================================================================
 1. INTRODUCTION                              *atlas* *atlas.nvim* *atlas-introduction*
 
-Review pull requests and manage issues across GitHub, GitLab, Bitbucket and Jira
-without leaving your editor.
+Review pull requests and manage issues across GitHub, GitLab, Bitbucket, Gerrit and
+Jira without leaving your editor.
 
 ==============================================================================
 2. INSTALLATION                                            *atlas-installation*
@@ -66,6 +67,7 @@ REQUIREMENTS                                               *atlas-requirements*
   - For GitHub: the `gh` CLI, authenticated via `gh auth login`
   - For Bitbucket: Bitbucket Cloud API token (`api.bitbucket.org`)
   - For GitLab: GitLab 17.7+ and a Personal Access Token with the `api` scope
+  - For Gerrit: 3.3+ and an HTTP password
   - For Jira: Cloud REST API v3 or Server REST API v2
 
 CodeDiff requires v3.0.0 or newer. Diffview and Diffview-plus are also supported.
@@ -110,6 +112,17 @@ up and what's missing.
         -- Personal Access Token with `api` scope:
         -- https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html
         token = vim.env.GITLAB_TOKEN,
+        cache_ttl = 300, -- Set to 0 to disable caching.
+      },
+      ---@type AtlasGerritConfig
+      gerrit = {
+        base_url = "https://gerrit.example.com",
+        user = "your-username",
+        -- Settings -> HTTP Credentials, or `token_cmd` to read it from a command.
+        http_password = vim.env.GERRIT_HTTP_PASSWORD,
+        ssh_port = 29418, -- Used for `git_transport = "ssh"`.
+        approve_vote = 1, -- Capped by your permitted Code-Review range.
+        request_changes_vote = -1,
         cache_ttl = 300, -- Set to 0 to disable caching.
       },
       ---@type AtlasJiraConfig
@@ -220,11 +233,12 @@ Use `ctx.write(text)` to show output and `done(ok, message)` to finish the actio
         configured provider or asks you to choose. `.` uses the current
         repository's provider.
 
-:Atlas review [pull-request-url|number|.]
+:Atlas review [pull-request-url|number|Change-Id|.]
         Pick an open or draft pull request in the current repository and open
         its diff. With a URL or a number (`12`, `#12`, or GitLab `!12`), open
-        that pull request directly. `.` opens the current branch's pull
-        request.
+        that pull request directly. A number or Gerrit Change-Id outside a
+        supported repository opens the change from the configured Gerrit
+        host. `.` opens the current branch's pull request.
 
 :Atlas diff <base...head>
         Open a Git range with the configured diff viewer
@@ -279,8 +293,8 @@ Use `ctx.write(text)` to show output and `done(ok, message)` to finish the actio
 5. PULLS                                                          *atlas-pulls*
 
 Use `:Atlas pulls [provider|.]` to browse and manage pull requests from
-GitHub, Bitbucket, and GitLab. Shared authentication and endpoints are
-configured in |atlas-configuration|.
+GitHub, Bitbucket, GitLab, and Gerrit. Shared authentication and endpoints
+are configured in |atlas-configuration|.
 
 PULLS CONFIGURATION                              *atlas-pulls-configuration*
 
@@ -543,6 +557,44 @@ self-hosted URL.
     },
   }
 <
+
+GERRIT PULLS                                              *atlas-pulls-gerrit*
+
+Changes are shown as pull requests. Auth uses HTTP Basic with the HTTP
+password from Settings -> HTTP Credentials. `search` uses Gerrit query syntax;
+`status:` terms become the dashboard state filters.
+
+>lua
+  pulls = {
+    ---@type AtlasGerritPullsConfig
+    gerrit = {
+      views = {
+        { name = "Mine", key = "1", search = "owner:self status:open" },
+        { name = "Review requested", key = "2",
+          search = "reviewer:self -owner:self status:open" },
+        -- Prefixes `project:<origin project>` to the search:
+        { name = "Current repo", key = "3", current_repo = true },
+      },
+    },
+  }
+<
+Typing `@` in a comment completes `@<email>` mentions of the owner,
+reviewers, CCs and commenters (Gerrit 3.7+ notifies them). The relation chain
+shows under related items (|atlas-keymaps| `ui.open_references`) as `parent`
+and `child` changes.
+
+Resolving or reopening a thread adds a draft reply ("Done" or "Reopened")
+that is published with your review. If the thread already has a draft reply
+of yours, Atlas updates it instead. Toggling back before submitting deletes a
+draft whose whole text is "Done" or "Reopened", including one you typed
+yourself; any other draft reply is kept and only its resolved flag changes.
+
+Limitations:
+  - The diff compares the current patch set against its parent.
+  - Published comments cannot be edited or deleted; only drafts can.
+  - Changes are created with `git push origin HEAD:refs/for/<branch>`.
+  - `:Atlas review .` lists every open change of the repository, since
+    Gerrit changes have no source branch.
 
 
 6. ISSUES                                                        *atlas-issues*

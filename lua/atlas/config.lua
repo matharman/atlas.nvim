@@ -97,6 +97,7 @@
 
 ---@class AtlasProvidersConfig
 ---@field bitbucket AtlasBitbucketConfig|nil
+---@field gerrit AtlasGerritConfig|nil
 ---@field github AtlasGitHubConfig|nil
 ---@field gitlab AtlasGitLabConfig|nil
 ---@field jira AtlasJiraConfig|nil
@@ -112,6 +113,7 @@
 ---@field comment_templates AtlasPullsCommentTemplatesConfig|nil
 ---@field custom_actions AtlasPullsCustomAction[]|nil
 ---@field bitbucket AtlasBitbucketPullsConfig|nil
+---@field gerrit AtlasGerritPullsConfig|nil
 ---@field github AtlasGitHubPullsConfig|nil
 ---@field gitlab AtlasGitLabPullsConfig|nil
 

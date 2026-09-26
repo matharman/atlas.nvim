@@ -73,7 +73,11 @@
 ---@field edit_comment (fun(pr: PullRequest, comment: PullsComment, content: string, on_done: fun(comment: PullsComment|nil, err: string|nil)): { cancel: fun() }|nil)|nil
 ---@field delete_comment (fun(pr: PullRequest, target: PullsComment, on_done: fun(ok: boolean, err: string|nil)): { cancel: fun() }|nil)|nil
 ---@field reactions AtlasReactionsCapability|nil
----@field set_thread_resolved (fun(pr: PullRequest, root: PullsComment, resolved: boolean, on_done: fun(ok: boolean, err: string|nil)): { cancel: fun() }|nil)|nil
+---@field set_thread_resolved (fun(pr: PullRequest, root: PullsComment, resolved: boolean, on_done: fun(ok: boolean, err: string|nil, draft: PullsThreadDraftChange|nil)): { cancel: fun() }|nil)|nil
+
+---@class PullsThreadDraftChange
+---@field comment PullsComment Pending comment that records the resolution.
+---@field removed boolean true when that pending comment was deleted instead.
 
 ---@class PullsReviewsCapability
 ---@field fetch fun(pr: PullRequest, opts: { force_refresh: boolean|nil }|nil, on_done: fun(data: PullsReviewData|nil, err: string|nil)): { cancel: fun() }|nil
